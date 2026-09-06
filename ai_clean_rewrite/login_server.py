@@ -212,10 +212,23 @@ class LoginDatabase:
             hwmask=row["hwmask"],
         )
 
-    def create_user(self, username: str, password: str = "") -> User:
+    def create_user(
+        self, 
+        username: str, 
+        password: str = "",
+        email: str = "",
+        born: str = "",
+        gend: str = "",
+        persona: str = "",
+        mask: str = "",
+    ) -> Optional[User]:
+        # Check if already exists
+        if self.get_user(username):
+            return None
+            
         pw_hash = hashlib.md5(password.encode()).hexdigest() if password else hashlib.md5(username.encode()).hexdigest()
-        # Default personas format matching PCAP
-        personas = f"{username},{{is}},Reviving,\"PS2 Games\""
+        # Default personas format
+        personas = persona if persona else f"{username},{{is}},Reviving,\"PS2 Games\""
         user = User(
             username=username,
             password_hash=pw_hash,
@@ -314,7 +327,9 @@ class LoginServer:
 
                 # Trim null bytes from msg_type for display
                 clean_type = msg_type.rstrip('\x00')
-                LOG.info("[%s] RX %s: %s", conn.conn_id, clean_type, dict(kv))
+                type_hex = msg_type.encode('latin-1').hex() if isinstance(msg_type, str) else msg_type.hex()
+                LOG.info("[%s] RX %s [type=%s] kv=%s raw_len=%d", 
+                        conn.conn_id, clean_type, type_hex, dict(kv), len(raw))
 
                 await self._dispatch(conn, clean_type, kv, writer)
 
@@ -344,6 +359,7 @@ class LoginServer:
         handler = {
             "addr": self._handle_addr,
             "skey": self._handle_skey,
+            "acct": self._handle_acct,
             "auth": self._handle_auth,
             "pers": self._handle_pers,
             "sele": self._handle_sele,
@@ -354,6 +370,7 @@ class LoginServer:
             "snap": self._handle_snap,
             "user": self._handle_user,
             "mesg": self._handle_mesg,
+            "peek": self._handle_peek,
             "~png": self._handle_ping,
         }.get(msg_type)
 
@@ -363,7 +380,7 @@ class LoginServer:
             except Exception as exc:
                 LOG.error("[%s] Handler %s crashed: %s: %s", conn.conn_id, msg_type, type(exc).__name__, exc, exc_info=True)
         else:
-            LOG.warning("[%s] No handler for: %s", conn.conn_id, msg_type)
+            LOG.warning("[%s] UNHANDLED: %s -> %s", conn.conn_id, msg_type, kv)
 
     # ── Message handlers ────────────────────────────────────────────────────
 
@@ -388,6 +405,82 @@ class LoginServer:
         LOG.info("[%s] skey: %s...", conn.conn_id, skey[:20])
         # Accept and clear — respond with SKEY=0 (key exchange complete)
         await send_kv(writer, "skey", {"SKEY": "0"})
+        await writer.drain()
+
+    async def _handle_acct(
+        self, conn: ClientConn, kv: Dict[str, str], writer: asyncio.StreamWriter
+    ) -> None:
+        """Account creation - client wants to create a new account."""
+        name = kv.get("NAME", "")
+        email = kv.get("MAIL", "")
+        born = kv.get("BORN", "")
+        gend = kv.get("GEND", "")
+        alts = kv.get("ALTS", "4")
+        prod = kv.get("PROD", "")
+        vers = kv.get("VERS", "")
+        lang = kv.get("LANG", "en")
+        slus = kv.get("SLUS", "")
+        mask = kv.get("MASK", "")
+
+        LOG.info("[%s] acct: NAME=%s MAIL=%s BORN=%s GEND=%s ALTS=%s", 
+                 conn.conn_id, name, email, born, gend, alts)
+
+        # Check required fields
+        if not name or not email or not born:
+            LOG.warning("[%s] acct: Missing required fields", conn.conn_id)
+            await send_kv(writer, "acct", {"S": "0", "STATUS": "0", "ERROR": "Missing required fields"})
+            await writer.drain()
+            return
+
+        # Check if account exists
+        existing = self.db.get_user(name)
+        if existing:
+            LOG.warning("[%s] acct: Account already exists: %s", conn.conn_id, name)
+            await send_kv(writer, "acct", {"S": "0", "STATUS": "0", "ERROR": "Account exists"})
+            await writer.drain()
+            return
+
+        # Get password (may be hashed or in hex format)
+        password = kv.get("PASS", "")
+        
+        # Get or generate persona (defaults to name if not provided)
+        persona = kv.get("PERS", name)
+
+        # Create user account
+        user = self.db.create_user(
+            username=name,
+            email=email,
+            born=born,
+            gend=gend,
+            password=password,
+            persona=persona,
+            mask=mask,
+        )
+
+        if user:
+            conn.username = name
+            conn.authenticated = True
+            conn.session_id = str(int(time.time() * 1000))
+
+            # Build response with account info
+            timestamp = time.strftime('%Y.%m.%d %I:%M:%S')
+            response = {
+                "TOS": "1",
+                "NAME": name.lower(),
+                "USER": name.lower(),
+                "AGE": "21",
+                "PERSONAS": persona,
+                "SINCE": timestamp,
+                "LAST": timestamp,
+                "PRIV": kv.get("PRIV", "1"),
+                "SPAM": kv.get("SPAM", "NN"),
+                "STATUS": "1",
+            }
+            LOG.info("[%s] acct: Created account for %s", conn.conn_id, name)
+            await send_kv(writer, "acct", response)
+        else:
+            await send_kv(writer, "acct", {"S": "0", "STATUS": "0", "ERROR": "Account creation failed"})
+        
         await writer.drain()
 
     async def _handle_auth(
@@ -540,7 +633,7 @@ class LoginServer:
         # 2) Push newsnew0 with buddy server handoff info
         await asyncio.sleep(0.05)
         await send_kv(writer, "news", {
-            "BUDDY_URL": self.buddy_host,
+            "BUDDY_URL": "buddy.ea.com",
             "BUDDY_PORT": str(self.buddy_port),
             "BUDDY_SERVER": self.buddy_host,
             "TOS_TEXT": f"{conn.username}_TOS",
@@ -817,25 +910,17 @@ class LoginServer:
     ) -> None:
         """Private message / game invitation / challenge system.
 
-        The client sends 'mesg' with PRIV, TEXT, and ATTR fields:
-            ATTR=0, PRIV=     — room chat (broadcast to all in same room)
-            ATTR=0, PRIV=name — private whisper to a specific user
-            ATTR=3             — game invite / challenge / invite-related
-            ATTR=3, TEXT=DECL — decline an invite
-            ATTR=3, TEXT=ACPT — accept an invite
-            ATTR=3, TEXT=token — challenge token (race invitation)
-
-        The PRIV field contains the *target* username (empty = room broadcast).
-        TEXT contains the payload (chat text, invite token, 'DECL', 'ACPT', etc.).
-
-        Binary-verified tags (C→S send path in fcn.00288668):
-            PRIV  — 0x3d8390 (.rodata)
-            TEXT  — 0x3d8398 (.rodata)
-            ATTR  — 0x3d83a0 (.rodata)
-
-        Server relay uses '+msg' type (0x2b6d7367), NOT 'mesg'.
-        The binary has NO 'mesg' receive handler — 'mesg' is send-only.
-        '+msg' is dispatched in LobbyApiUpdate (fcn.0031bdf0) at 0x31c6f8.
+        Client sends challenges using PRIV/TEXT/ATTR format:
+        - PRIV: Target username
+        - TEXT: Challenge token (w893m_a017l_g) or response (DECL/ACPT)
+        - ATTR: "3" for challenges
+        
+        Server forwards challenges using OPPO/SEED/ROOM format:
+        - OPPO: Challenger username
+        - SEED: Challenge token or response (DECL/ACPT)
+        - ROOM: Room identifier
+        
+        Binary evidence confirms OPPO/SEED/ROOM is the correct format.
         """
         priv = kv.get("PRIV", "")
         text = kv.get("TEXT", "")
@@ -846,47 +931,33 @@ class LoginServer:
             conn.conn_id, priv, text, attr,
         )
 
-        # Do NOT send mesg S=0 ack — the client has no 'mesg' receive
-        # handler.  The binary confirms: 'mesg' is send-only; only '+msg'
-        # (0x2b6d7367) is dispatched in LobbyApiUpdate at 0x31c6f8.
-        # Sending mesg S=0 caused the client to parse it as an empty chat
-        # message, displaying a bare ":" separator.
-        if not text:
-            LOG.info("[%s] mesg: empty TEXT, skip delivery", conn.conn_id)
-            return
-
         # Build delivery payload — server relay type is '+msg', not 'mesg'.
-        # r2 confirmed: 'mesg' has no receive handler in LobbyApiUpdate.
-        # Only '+msg' (0x2b6d7367) is dispatched there (at 0x31c6f8).
         relay_type = "+msg"
 
         # EA uses no-leading-zero month/day (e.g. "2003.7.2 14:30:00").
         t = time.localtime()
         now = f"{t.tm_year}.{t.tm_mon}.{t.tm_mday} {t.tm_hour:02d}:{t.tm_min:02d}:{t.tm_sec:02d}"
 
-        if attr == "3":
+        if attr == "3" and priv and text:
             # ── Challenge protocol (ATTR=3) ───────────────────────────────
             if text == "DECL":
                 # Decline challenge
                 LOG.info("[%s] Challenge declined by %s", conn.conn_id, conn.username)
-                # Forward the decline to the original challenger
-                if priv:
-                    await self._forward_challenge_response(conn, priv, "DECL")
+                # Forward the decline to the original challenger using OPPO/SEED/ROOM
+                await self._forward_challenge_response(conn, priv, "DECL")
                 return
             elif text == "ACPT":
                 # Accept challenge
                 LOG.info("[%s] Challenge accepted by %s", conn.conn_id, conn.username)
-                # Forward the acceptance to the original challenger
-                if priv:
-                    await self._forward_challenge_response(conn, priv, "ACPT")
+                # Forward the acceptance to the original challenger using OPPO/SEED/ROOM
+                await self._forward_challenge_response(conn, priv, "ACPT")
                 return
             else:
                 # Challenge token (race invitation)
                 LOG.info("[%s] Challenge token from %s to %s: %s", 
                          conn.conn_id, conn.username, priv, text)
-                if priv:
-                    # Forward challenge to target user
-                    await self._forward_challenge(conn, priv, text)
+                # Forward challenge to target user using OPPO/SEED/ROOM
+                await self._forward_challenge(conn, priv, text)
                 return
         elif priv:
             # ── Private message: deliver to specific user ──────────────────
@@ -944,7 +1015,10 @@ class LoginServer:
             )
 
     async def _forward_challenge(self, conn: ClientConn, target_username: str, token: str) -> None:
-        """Forward a challenge token to the target user."""
+        """Forward a challenge token to the target user.
+        
+        Uses OPPO/SEED/ROOM format for challenges.
+        """
         LOG.info("[%s] Attempting to forward challenge from %s to %s", 
                  conn.conn_id[:8], conn.username, target_username)
         
@@ -966,20 +1040,28 @@ class LoginServer:
                         LOG.info("[%s] Writer found for target, sending challenge", 
                                  conn.conn_id[:8])
                         
-                        # Use same format as client sends: PRIV, TEXT, ATTR
+                        # Get target's room name
+                        target_room_name = "Unknown"
+                        if target_conn.current_room_idx >= 0:
+                            for room in self._rooms:
+                                if room.index == target_conn.current_room_idx:
+                                    target_room_name = room.name
+                                    break
+                        
+                        # Use OPPO/SEED/ROOM format for challenges with actual room name
                         challenge_msg = {
-                            "PRIV": target_username,  # Target username (same as received)
-                            "TEXT": token,             # Challenge token (same as received)
-                            "ATTR": "3"                # Challenge type (same as received)
+                            "OPPO": conn.username,  # Challenger username
+                            "SEED": token,           # Challenge token
+                            "ROOM": target_room_name  # Actual room name where target is
                         }
                         
-                        LOG.info("[%s] Challenge format: %s", 
-                                 conn.conn_id[:8], challenge_msg)
+                        LOG.info("[%s] Challenge format: %s (target room: %s)", 
+                                 conn.conn_id[:8], challenge_msg, target_room_name)
                         
                         target_writer = self._writers[target_conn_id]
                         await send_kv(target_writer, "mesg", challenge_msg)
-                        LOG.info("[%s] Forwarded challenge from %s to %s: %s", 
-                                 conn.conn_id[:8], conn.username, target_username, token)
+                        LOG.info("[%s] Forwarded challenge from %s to %s: %s (room: %s)", 
+                                 conn.conn_id[:8], conn.username, target_username, token, target_room_name)
                     else:
                         LOG.error("[%s] No writer found for target %s (conn_id: %s)", 
                                  conn.conn_id[:8], target_username, target_conn_id)
@@ -995,17 +1077,20 @@ class LoginServer:
                      conn.conn_id[:8], target_username)
     
     async def _forward_challenge_response(self, conn: ClientConn, target_username: str, response: str) -> None:
-        """Forward a challenge response (DECL/ACPT) to the original challenger."""
+        """Forward a challenge response (DECL/ACPT) to the original challenger.
+        
+        Uses OPPO/SEED/ROOM format for responses.
+        """
         for target_conn_id, target_conn in self._clients.items():
             if target_conn.username == target_username and target_conn.conn_id != conn.conn_id:
                 try:
                     if target_conn_id in self._writers:
                         target_writer = self._writers[target_conn_id]
-                        # Use same format as challenge: PRIV, TEXT, ATTR
+                        # Use OPPO/SEED/ROOM format for responses
                         response_msg = {
-                            "PRIV": conn.username,    # Responder username
-                            "TEXT": response,         # Response (DECL/ACPT)
-                            "ATTR": "3"              # Challenge type (same as received)
+                            "OPPO": conn.username,    # Responder username
+                            "SEED": response,         # Response (DECL/ACPT)
+                            "ROOM": "response"        # Response identifier
                         }
                         await send_kv(target_writer, "mesg", response_msg)
                         LOG.info("[%s] Forwarded challenge %s from %s to %s", 
@@ -1087,6 +1172,15 @@ class LoginServer:
         })
         await writer.drain()
 
+    async def _handle_peek(
+        self, conn: ClientConn, kv: Dict[str, str], writer: asyncio.StreamWriter
+    ) -> None:
+        """Handle peek command."""
+        LOG.info("[%s] peek: %s", conn.conn_id, dict(kv))
+        # Send empty response
+        await send_kv(writer, "peek", {})
+        await writer.drain()
+
     async def _push_room_list(
         self, conn: ClientConn, writer: asyncio.StreamWriter,
         include_lobby: bool = True,
@@ -1119,7 +1213,7 @@ class LoginServer:
         """Push +usr in login/lobby context.
 
         Protocol tags (from commands.md + structure_definitions.md):
-            I=user_id  N=name  A=int_ip  F=flags  S=status_text
+            I=user_id  N=name  A=int_ip  F=flags  S=status_text  P=password
 
         A must be an integer string (TagFieldGetAddress).  Used during
         initial login and after returning to the Lobby.
@@ -1131,8 +1225,9 @@ class LoginServer:
                 "I": str(user_id),
                 "N": conn.username,
                 "A": ip_to_int(conn.client_ip or self.buddy_host),
-                "F": str(0),
-                "S": "Online"
+                "F": "1",
+                "S": "Online",
+                "P": ""
             })
         await writer.drain()
 
