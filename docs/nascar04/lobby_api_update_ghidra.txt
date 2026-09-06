@@ -1,0 +1,765 @@
+
+void LobbyApiUpdate(undefined8 param_1)
+
+{
+  byte bVar1;
+  uint uVar2;
+  int iVar3;
+  byte *pbVar4;
+  uint uVar5;
+  undefined4 *puVar6;
+  int *piVar7;
+  byte *pbVar8;
+  int *piVar9;
+  int iVar10;
+  ulong uVar11;
+  int iVar13;
+  undefined8 *puVar14;
+  long lVar15;
+  uint uVar16;
+  undefined8 *puVar17;
+  long lVar18;
+  char *pcVar19;
+  undefined8 extraout_a3;
+  undefined8 extraout_a3_00;
+  undefined8 uVar20;
+  long lVar21;
+  undefined8 extraout_t0;
+  undefined8 extraout_t0_00;
+  undefined8 uVar22;
+  undefined8 extraout_t1;
+  undefined8 extraout_t1_00;
+  undefined8 extraout_t1_01;
+  undefined8 uVar23;
+  undefined8 extraout_t2;
+  undefined8 extraout_t2_00;
+  undefined8 extraout_t2_01;
+  undefined8 extraout_t3;
+  undefined8 extraout_t3_00;
+  undefined8 extraout_t3_01;
+  int *piVar24;
+  byte abStack_410 [256];
+  undefined4 uStack_310;
+  int iStack_30c;
+  uint uStack_308;
+  byte *pbStack_304;
+  undefined1 auStack_300 [56];
+  code *pcStack_2c8;
+  undefined4 uStack_2c4;
+  byte bStack_2b0;
+  byte abStack_2af [511];
+  int iStack_b0;
+  uint uStack_ac;
+  byte *pbStack_a8;
+  byte **ppbStack_a4;
+  long lVar12;
+  
+  piVar24 = (int *)param_1;
+  if (*piVar24 == 0) {
+    return;
+  }
+  uVar2 = ProtoAriesTick();
+  iVar10 = piVar24[3];
+  if (iVar10 == 0x6f66666c) goto LAB_0031be98;
+  iVar13 = uVar2 - piVar24[5];
+  if (piVar24[5] == 0) {
+LAB_0031be6c:
+    iVar3 = piVar24[4];
+  }
+  else {
+    iVar3 = piVar24[4];
+    if (5000 < iVar13) {
+      piVar24[4] = iVar3 + iVar13;
+      goto LAB_0031be6c;
+    }
+  }
+  if ((int)(iVar3 - uVar2) < 0) {
+    Lobby_ChangeConnectionState(param_1,0x74696d65,0x800);
+    iVar10 = piVar24[3];
+  }
+LAB_0031be98:
+  piVar24[5] = uVar2;
+  if ((iVar10 != 0x7465726d) && (iVar10 != 0x6f66666c)) {
+    Lobby_ProcessNetworkEvents(param_1);
+    ppbStack_a4 = &pbStack_a8;
+    while( true ) {
+      iVar10 = ProtoAriesPeek((undefined4 *)*piVar24,(long)(int)&iStack_b0,(long)(int)&uStack_ac ,
+                              (long)(int)ppbStack_a4);
+      lVar21 = (long)iVar10;
+      if (lVar21 < 0) break;
+      piVar24[4] = uVar2 + 60000;
+      if (iStack_b0 == 0x7e706e67) {
+        iVar10 = 0x7e706e67;
+        if (piVar24[7] != -1) {
+          String_FormatTruncated((char *)abStack_410,0x100,(char *)pbStack_a8);
+          String_AppendKeyValue(abStack_410,0x100,NET_PingField,piVar24[7]);
+          lVar21 = -1;
+          iVar10 = iStack_b0;
+          pbStack_a8 = abStack_410;
+        }
+        ProtoAriesSend((undefined4 *)*piVar24,iVar10,uStack_ac,(char *)pbStack_a8,lVar21);
+        puVar6 = (undefined4 *)*piVar24;
+      }
+      else {
+        uStack_308 = uStack_ac;
+        pbStack_304 = pbStack_a8;
+        uStack_310 = 0;
+        iStack_30c = iStack_b0;
+        if ((code *)piVar24[0x145] != (code *)0x0) {
+          (*(code *)piVar24[0x145])(param_1,&uStack_310,piVar24[0x146]);
+        }
+        CommandQueue_ProcessNext((int)piVar24,(long)(int)auStack_300,iStack_b0);
+        if (pcStack_2c8 != (code *)0x0) {
+          (*pcStack_2c8)(param_1,&uStack_310,uStack_2c4);
+        }
+        if (piVar24[3] == 0x72646972) {
+          if (iStack_b0 == 0x40646972) {
+            uVar5 = Lobby_GetConnectionParam((undefined4 *)*piVar24,0x6c707274);
+            uVar16 = Lobby_GetConnectionParam((undefined4 *)*piVar24,0x6c616472);
+            piVar24[0x140] = uVar16;
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_DirectField);
+            if (pbVar4 == (byte *)0x0) {
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field3);
+              uVar16 = TagFieldGetAddress(pbVar4,0);
+              piVar24[0xed] = uVar16;
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_PortField);
+              iVar10 = TagFieldGetNumber(pbVar4,0);
+              piVar24[0xec] = iVar10;
+            }
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_SessionField);
+            iVar10 = TagFieldGetNumber(pbVar4,0);
+            piVar24[0x12e] = iVar10;
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_StatusField);
+            TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x12f),0x40,(byte *)NET_DefaultValue);
+            Lobby_ClearProtocolState((undefined4 *)*piVar24);
+            if (piVar24[0xed] != 0) {
+              piVar24[3] = 0x636f6e6e;
+              Lobby_UpdateConnection((int)piVar24);
+              Connection_InitiateToServer
+                        ((int)piVar24,0x3df238,(long)piVar24[0xed],(long)piVar24[0xec],extraout_t0 ,
+                         extraout_t1,extraout_t2,extraout_t3);
+              ProtoAriesConnect((undefined4 *)*piVar24,piVar24[0xed],piVar24[0xec]);
+              abStack_410[0] = 0;
+              Network_FormatIPAndProcess(abStack_410,0x100,NET_Field3,piVar24[0x140]);
+              String_AppendKeyValue(abStack_410,0x100,LOBBY_PortField,uVar5);
+              ProtoAriesSend((undefined4 *)*piVar24,0x61646472,0,(char *)abStack_410,-1);
+              break;
+            }
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_ServerField);
+            TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xee),0x100,(byte *)NET_DefaultValue);
+            piVar24[2] = piVar24[2] | 0x400;
+          }
+          iStack_b0 = 0;
+        }
+        if ((iStack_b0 == -1) && (uStack_ac == 0xffffffff)) {
+          abStack_410[0] = 0;
+          TagFieldSetBinary(abStack_410,0x100,LOBBY_PublicKeyField,(byte *)"Public Key",10);
+          ProtoAriesSend((undefined4 *)*piVar24,0x736b6579,0,(char *)abStack_410,-1);
+          piVar24[0x141] = 1;
+          piVar24[3] = 0x736b6579;
+          iStack_b0 = 0x636f6e6e;
+          uStack_ac = 0;
+        }
+        uVar5 = uStack_ac;
+        if ((piVar24[3] == 0x736b6579) &&
+           (((iStack_b0 == 0x736b6579 || (iStack_b0 == 0x73656c65)) && (uStack_ac == 0)))) {
+          if (iStack_b0 == 0x736b6579) {
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_PublicKeyField);
+            TagFieldGetBinary((long)(int)pbVar4,(byte *)(piVar24 + 9),0x10);
+            uVar16 = piVar24[2];
+          }
+          else {
+            uVar16 = piVar24[2];
+          }
+          piVar24[2] = uVar16 | 1;
+          piVar24[3] = 0x69646c65;
+          iStack_b0 = 0x636f6e6e;
+          uStack_ac = 0;
+          piVar24[6] = uVar2;
+          if ((code *)piVar24[0x14b] != (code *)0x0) {
+            iStack_30c = 0x636f6e6e;
+            uStack_310 = 3;
+            uStack_308 = 0;
+            pbStack_304 = (byte *)0x0;
+            (*(code *)piVar24[0x14b])(param_1,&uStack_310,piVar24[0x14c]);
+            uVar5 = uStack_ac;
+          }
+        }
+        if (((iStack_b0 == -1) && (uVar5 == 0xfefefefe)) && (piVar24[3] != 0x636f6e6e)) {
+          Lobby_ChangeConnectionState(param_1,0xfefefefe,0x800);
+          uVar5 = uStack_ac;
+        }
+        if (uVar5 == 0x61757468) {
+          Lobby_ChangeConnectionState(param_1,0x61757468,2);
+        }
+        if ((iStack_b0 == 0x61757468) && (uStack_ac == 0)) {
+          piVar24[3] = 0x61757468;
+          piVar24[2] = piVar24[2] | 2;
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field2);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x4d),0x40,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field3);
+          uVar5 = TagFieldGetAddress(pbVar4,0);
+          piVar24[0x13f] = uVar5;
+        }
+        if ((iStack_b0 == 0x61636374) && (uStack_ac == 0)) {
+          piVar24[3] = 0x61636374;
+          piVar24[2] = piVar24[2] | 2;
+        }
+        if (((iStack_b0 == 0x736e6170) &&
+            (iVar10 = piVar24[0x143], piVar24[0x143] = iVar10 + -1, iVar10 + -1 == 0)) &&
+           (uStack_ac == 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_SnapField);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          piVar24[0x142] = iVar10;
+        }
+        if ((iStack_b0 == 0x73656c65) && (uStack_ac == 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_SlotsField);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          piVar24[0x141] = iVar10;
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_MaxSlotsField);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          piVar24[0x144] = iVar10;
+        }
+        if ((iStack_b0 == 0x70657273) && (uStack_ac == 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)LOBBY_PersonaField);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x5d),0x40,(byte *)NET_DefaultValue);
+          piVar24[6] = uVar2;
+        }
+        if (iStack_b0 == 0x2b736573) {
+          memset(piVar24 + 0x80,0,0x110);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field2);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x80),0x20,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field1);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x88),0x20,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field2);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x90),0x20,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field3);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x98),0x20,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field4);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xa0),0x10,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field5);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xa4),0x10,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field6);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xa8),0x10,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field7);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xac),0x10,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field8);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0xb4),0x40,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field3);
+          uVar5 = TagFieldGetAddress(pbVar4,0);
+          piVar24[0xb0] = uVar5;
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field9);
+          uVar5 = TagFieldGetAddress(pbVar4,0);
+          piVar24[0xb1] = uVar5;
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field10);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          piVar24[0xb2] = iVar10;
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)USER_Field11);
+          uVar11 = TagFieldGetEpoch((long)(int)pbVar4,0);
+          piVar24[0xb3] = (int)uVar11;
+          piVar24[2] = piVar24[2] | 0x200;
+          if ((code *)piVar24[0x14d] != (code *)0x0) {
+            uStack_310 = 4;
+            iStack_30c = 0x706c6179;
+            pbStack_304 = pbStack_a8;
+            uStack_308 = 0;
+            (*(code *)piVar24[0x14d])(param_1,&uStack_310,piVar24[0x14e]);
+          }
+        }
+        if ((iStack_b0 == 0x2b6d7367) && (piVar24[0x147] != 0)) {
+          uStack_310 = 1;
+          iStack_30c = 0x63686174;
+          uStack_308 = 0;
+          pbStack_304 = pbStack_a8;
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_FlagsField);
+          uStack_308 = TagFieldGetFlags((char *)pbVar4,0);
+          if ((uStack_308 & 4) != 0) {
+            iStack_30c = 0x63617374;
+          }
+          if ((uStack_308 & 0x10000) != 0) {
+            iStack_30c = 0x70726976;
+          }
+          (*(code *)piVar24[0x147])(param_1,&uStack_310,piVar24[0x148]);
+        }
+        if (iStack_b0 == 0x2b77686f) {
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+          TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x5d),0x40,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_FlagsField);
+          uVar5 = TagFieldGetFlags((char *)pbVar4,0);
+          piVar24[0x6d] = uVar5;
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_RoomID);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_PlayerCount);
+          iVar13 = TagFieldGetNumber(pbVar4,0);
+          if (iVar10 != piVar24[0x6e]) {
+            piVar24[0x6e] = iVar10;
+            Lobby_UpdateRoomPopulation((int)piVar24,iVar10,(long)iVar13);
+            pbVar4 = TagFieldFind(pbStack_a8,&MSG_RankField);
+            TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x70),0x40,(byte *)NET_DefaultValue);
+            pbVar4 = TagFieldFind(pbStack_a8,&MSG_RoomFlags);
+            uVar5 = TagFieldGetFlags((char *)pbVar4,0);
+            piVar24[0x6f] = uVar5;
+            piVar24[2] = piVar24[2] | 8;
+            if (piVar24[0xc9] != 0) {
+              while (puVar6 = (undefined4 *)Buddy_GetNextUser((int *)piVar24[0xc9]),
+                    puVar6 != (undefined4 *)0x0) {
+                iVar10 = HashTable_FreeEntry(piVar24[0xca],puVar6);
+                Util_FreeMemory((long)iVar10);
+              }
+              piVar24[2] = piVar24[2] | 0x40;
+            }
+          }
+        }
+        if ((iStack_b0 == 0x2b726f6d) && (piVar24[0xc4] != 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_IDField);
+          iVar10 = TagFieldGetNumber(pbVar4,-1);
+          if (-1 < iVar10) {
+            pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+            if (pbVar4 == (byte *)0x0) {
+              puVar6 = (undefined4 *)HashTable_Lookup(piVar24[0xc4],iVar10);
+              if (puVar6 == (undefined4 *)0x0) {
+                uVar5 = piVar24[2];
+              }
+              else {
+                HashTable_Remove((int *)piVar24[0xc4],iVar10);
+                iVar10 = HashTable_FreeEntry(piVar24[0xc5],puVar6);
+                Util_FreeMemory((long)iVar10);
+                piVar24[2] = piVar24[2] | 0x20;
+                uVar5 = piVar24[2];
+              }
+            }
+            else {
+              piVar7 = (int *)Util_AllocateMemory(0x68);
+              memset(piVar7,0,0x68);
+              *piVar7 = iVar10;
+              pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 7),0x20,(byte *)NET_DefaultValue);
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_DescriptionField);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 0xf),0x20,(byte *)NET_DefaultValue);
+              pbVar4 = TagFieldFind(pbStack_a8,&MSG_FlagsField);
+              uVar5 = TagFieldGetFlags((char *)pbVar4,0xffffffff);
+              piVar7[2] = uVar5;
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_HostField);
+              uVar5 = TagFieldGetAddress(pbVar4,0);
+              piVar7[0x19] = uVar5;
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_PlayerCountField);
+              iVar10 = TagFieldGetNumber(pbVar4,0);
+              piVar7[4] = iVar10;
+              pbVar4 = TagFieldFind(pbStack_a8,&ROOM_MaxPlayersField);
+              iVar10 = TagFieldGetNumber(pbVar4,0);
+              piVar7[3] = iVar10;
+              Util_FormatIPString((char *)(piVar7 + 5),0x3e2f70,(long)piVar7[4],extraout_a3,
+                                  extraout_t0_00,extraout_t1_00,extraout_t2_00,extraout_t3_00);
+              if ((piVar7[2] & 0x10000U) == 0) {
+                pcVar19 = &DAT_003e3108;
+              }
+              else {
+                pcVar19 = &DAT_003e3100;
+              }
+              StringHelper_CopyToBuffer((long)(int)(piVar7 + 6),pcVar19);
+              *(undefined1 *)(piVar7 + 0x17) = 0;
+              pbVar4 = TagFieldFind(pbStack_a8,&ROOM_PasswordField);
+              iVar10 = TagFieldGetNumber(pbVar4,-1);
+              uVar11 = (ulong)iVar10;
+              if (uVar11 == 0) {
+                piVar7[0x17] = ROOM_DefaultPassword;
+                iVar10 = piVar24[0xc4];
+              }
+              else {
+                if (0 < (long)uVar11) {
+                  Util_FormatIPString((char *)(piVar7 + 0x17),0x3e3120,uVar11,extraout_a3_00,uVar 11,
+                                      extraout_t1_01,extraout_t2_01,extraout_t3_01);
+                }
+                iVar10 = piVar24[0xc4];
+              }
+              puVar6 = (undefined4 *)HashTable_Lookup(iVar10,*piVar7);
+              if ((long)(int)puVar6 == 0) {
+                iVar10 = HashTable_AllocateEntry((long)piVar24[0xc5],(long)(int)piVar7);
+                HashTable_Insert((int *)piVar24[0xc4],*piVar7,iVar10);
+                uVar5 = piVar24[2];
+              }
+              else {
+                iVar10 = Buddy_GetUserData((long)piVar24[0xc5],(long)(int)puVar6);
+                if ((((long)iVar10 != 0) && ('/' < *(char *)(iVar10 + 0x5c))) &&
+                   (*(char *)(iVar10 + 0x5c) < ':')) {
+                  StringHelper_CopyToBuffer((long)(int)(piVar7 + 0x17),(char *)(iVar10 + 0x5c));
+                }
+                Util_FreeMemory((long)iVar10);
+                HashTable_UpdateEntry(piVar24[0xc5],puVar6,(long)(int)piVar7);
+                uVar5 = piVar24[2];
+              }
+            }
+            piVar24[2] = uVar5 | 0x20;
+          }
+        }
+        if ((iStack_b0 == 0x2b706f70) && (piVar24[0xc4] != 0)) {
+          pbVar8 = TagFieldFind(pbStack_a8,(byte *)ROOM_PopulationField);
+          pbVar4 = &bStack_2b0;
+          TagFieldGetString(pbVar8,pbVar4,0x200,(byte *)NET_DefaultValue);
+          bVar1 = bStack_2b0;
+          while (uVar5 = (uint)bVar1, uVar5 != 0) {
+            iVar10 = 0;
+            while (bVar1 - 0x30 < 10) {
+              uVar16 = uVar5 & 0xf;
+              pbVar4 = pbVar4 + 1;
+              bVar1 = *pbVar4;
+              uVar5 = (uint)bVar1;
+              iVar10 = iVar10 * 10 + uVar16;
+            }
+            if (iVar10 == 0) break;
+            uVar11 = 0;
+            if (uVar5 != 0) {
+              pbVar4 = pbVar4 + 1;
+            }
+            uVar5 = (uint)*pbVar4;
+            if (*pbVar4 - 0x30 < 10) {
+              iVar13 = piVar24[0x6e];
+              uVar16 = uVar5;
+              do {
+                pbVar8 = pbVar4;
+                pbVar4 = pbVar8 + 1;
+                uVar5 = (uint)*pbVar4;
+                uVar11 = (ulong)(int)((int)uVar11 * 10 + (uVar16 & 0xf));
+                uVar16 = uVar5;
+              } while (*pbVar4 - 0x30 < 10);
+              pbVar8 = pbVar8 + 2;
+            }
+            else {
+              iVar13 = piVar24[0x6e];
+              pbVar8 = pbVar4 + 1;
+            }
+            if (uVar5 != 0) {
+              pbVar4 = pbVar8;
+            }
+            if (iVar10 != iVar13) {
+              Lobby_UpdateRoomPopulation((int)piVar24,iVar10,uVar11);
+            }
+            bVar1 = *pbVar4;
+          }
+        }
+        if ((iStack_b0 == 0x2b757372) && (piVar24[0xc9] != 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_IDField);
+          iVar10 = TagFieldGetNumber(pbVar4,-1);
+          if (-1 < iVar10) {
+            pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+            if (pbVar4 == (byte *)0x0) {
+              puVar6 = (undefined4 *)HashTable_Lookup(piVar24[0xc9],iVar10);
+              if (puVar6 != (undefined4 *)0x0) {
+                HashTable_Remove((int *)piVar24[0xc9],iVar10);
+                iVar10 = HashTable_FreeEntry(piVar24[0xca],puVar6);
+                Util_FreeMemory((long)iVar10);
+              }
+            }
+            else {
+              piVar7 = (int *)Util_AllocateMemory(0x138);
+              lVar21 = (long)(int)piVar7;
+              memset(piVar7,0,0x138);
+              *piVar7 = iVar10;
+              pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 2),0x20,(byte *)NET_DefaultValue);
+              pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_HostField);
+              uVar5 = TagFieldGetAddress(pbVar4,0);
+              piVar7[0xc] = uVar5;
+              pbVar4 = TagFieldFind(pbStack_a8,&ROOM_PasswordField);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 10),8,(byte *)NET_DefaultValue);
+              pbVar4 = TagFieldFind(pbStack_a8,&MSG_FlagsField);
+              uVar5 = TagFieldGetFlags((char *)pbVar4,0);
+              piVar7[1] = uVar5;
+              pbVar4 = TagFieldFind(pbStack_a8,&DAT_003e3130);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 0xe),0x80,(byte *)NET_DefaultValue);
+              pbVar4 = TagFieldFind(pbStack_a8,&MSG_RankField);
+              iVar10 = TagFieldGetNumber(pbVar4,0);
+              piVar7[0xd] = iVar10;
+              pbVar4 = TagFieldFind(pbStack_a8,&DAT_003e3138);
+              TagFieldGetString(pbVar4,(byte *)(piVar7 + 0x2e),0x80,(byte *)NET_DefaultValue);
+              puVar6 = (undefined4 *)HashTable_Lookup(piVar24[0xc9],*piVar7);
+              if ((long)(int)puVar6 == 0) {
+                iVar10 = HashTable_AllocateEntry((long)piVar24[0xca],lVar21);
+                HashTable_Insert((int *)piVar24[0xc9],*piVar7,iVar10);
+              }
+              else {
+                piVar9 = (int *)Buddy_GetUserData((long)piVar24[0xca],(long)(int)puVar6);
+                lVar12 = (long)(int)piVar9;
+                if ((((uint)piVar7 | (uint)piVar9) & 7) == 0) {
+                  lVar15 = lVar21;
+                  lVar18 = lVar12;
+                  do {
+                    puVar14 = (undefined8 *)lVar15;
+                    uVar20 = puVar14[1];
+                    uVar22 = puVar14[2];
+                    uVar23 = puVar14[3];
+                    puVar17 = (undefined8 *)lVar18;
+                    *puVar17 = *puVar14;
+                    puVar17[1] = uVar20;
+                    puVar17[2] = uVar22;
+                    puVar17[3] = uVar23;
+                    puVar14 = puVar14 + 4;
+                    lVar15 = (long)(int)puVar14;
+                    puVar17 = puVar17 + 4;
+                    lVar18 = (long)(int)puVar17;
+                  } while (lVar15 != (int)(piVar7 + 0x48));
+                }
+                else {
+                  lVar15 = lVar21;
+                  lVar18 = lVar12;
+                  do {
+                    puVar14 = (undefined8 *)lVar15;
+                    uVar22 = puVar14[1];
+                    uVar23 = puVar14[2];
+                    uVar20 = puVar14[3];
+                    puVar17 = (undefined8 *)lVar18;
+                    *puVar17 = *puVar14;
+                    puVar17[1] = uVar22;
+                    puVar17[2] = uVar23;
+                    puVar17[3] = uVar20;
+                    puVar14 = puVar14 + 4;
+                    lVar15 = (long)(int)puVar14;
+                    puVar17 = puVar17 + 4;
+                    lVar18 = (long)(int)puVar17;
+                  } while (lVar15 != (int)(piVar7 + 0x48));
+                }
+                uVar20 = puVar14[1];
+                uVar22 = puVar14[2];
+                *puVar17 = *puVar14;
+                puVar17[1] = uVar20;
+                puVar17[2] = uVar22;
+                HashTable_UpdateEntry(piVar24[0xca],puVar6,lVar12);
+                Util_FreeMemory(lVar21);
+                piVar7 = piVar9;
+              }
+              if ((piVar7[1] & 0x200000U) != 0) {
+                piVar24[0x6d] = piVar7[1];
+              }
+            }
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_PlayerCountField);
+            iVar10 = TagFieldGetNumber(pbVar4,0);
+            Lobby_UpdateRoomPopulation((int)piVar24,piVar24[0x6e],(long)iVar10);
+            piVar24[2] = piVar24[2] | 0x40;
+          }
+        }
+        if ((iStack_b0 == 0x2b726e6b) && (piVar24[0xce] != 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,&RANK_TypeField);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          if (iVar10 == -2) {
+            while (puVar6 = (undefined4 *)Buddy_GetNextUser((int *)piVar24[0xce]),
+                  puVar6 != (undefined4 *)0x0) {
+              iVar10 = HashTable_FreeEntry(piVar24[0xcf],puVar6);
+              Util_FreeMemory((long)iVar10);
+            }
+            uVar5 = piVar24[2];
+          }
+          else {
+            piVar7 = (int *)Util_AllocateMemory(0xa8);
+            lVar21 = (long)(int)piVar7;
+            piVar7[1] = 0;
+            pbVar8 = (byte *)(piVar7 + 2);
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)ROOM_HostField);
+            iVar10 = TagFieldGetNumber(pbVar4,0);
+            *piVar7 = iVar10;
+            pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+            TagFieldGetString(pbVar4,pbVar8,0x20,(byte *)NET_DefaultValue);
+            pbVar4 = TagFieldFind(pbStack_a8,&DAT_003e3130);
+            TagFieldGetString(pbVar4,(byte *)(piVar7 + 10),0x80,(byte *)NET_DefaultValue);
+            if (*piVar7 < 0x2000) {
+              iVar10 = piVar24[0xce];
+            }
+            else {
+              *piVar7 = 0x1fff;
+              iVar10 = piVar24[0xce];
+            }
+            puVar6 = (undefined4 *)Buddy_FindUserByString(iVar10,(long)(int)pbVar8);
+            if ((long)(int)puVar6 == 0) {
+              if (*piVar7 < 1) {
+                Util_FreeMemory(lVar21);
+                uVar5 = piVar24[2];
+              }
+              else {
+                iVar10 = HashTable_AllocateEntry(piVar24[0xcf],lVar21);
+                Buddy_AddUser((int *)piVar24[0xce],pbVar8,iVar10);
+                uVar5 = piVar24[2];
+              }
+            }
+            else {
+              if (*piVar7 < 1) {
+                puVar6 = (undefined4 *)Buddy_RemoveUser((int *)piVar24[0xce],(long)(int)pbVar8);
+                iVar10 = HashTable_FreeEntry(piVar24[0xcf],puVar6);
+                Util_FreeMemory((long)iVar10);
+              }
+              else {
+                uVar5 = Buddy_GetUserData((long)piVar24[0xcf],(long)(int)puVar6);
+                lVar12 = (long)(int)uVar5;
+                if ((((uint)piVar7 | uVar5) & 7) == 0) {
+                  lVar15 = lVar21;
+                  lVar18 = lVar12;
+                  do {
+                    puVar14 = (undefined8 *)lVar15;
+                    uVar23 = puVar14[1];
+                    uVar20 = puVar14[2];
+                    uVar22 = puVar14[3];
+                    puVar17 = (undefined8 *)lVar18;
+                    *puVar17 = *puVar14;
+                    puVar17[1] = uVar23;
+                    puVar17[2] = uVar20;
+                    puVar17[3] = uVar22;
+                    puVar14 = puVar14 + 4;
+                    lVar15 = (long)(int)puVar14;
+                    puVar17 = puVar17 + 4;
+                    lVar18 = (long)(int)puVar17;
+                  } while (lVar15 != (int)(piVar7 + 0x28));
+                }
+                else {
+                  lVar15 = lVar21;
+                  lVar18 = lVar12;
+                  do {
+                    puVar14 = (undefined8 *)lVar15;
+                    uVar23 = puVar14[1];
+                    uVar20 = puVar14[2];
+                    uVar22 = puVar14[3];
+                    puVar17 = (undefined8 *)lVar18;
+                    *puVar17 = *puVar14;
+                    puVar17[1] = uVar23;
+                    puVar17[2] = uVar20;
+                    puVar17[3] = uVar22;
+                    puVar14 = puVar14 + 4;
+                    lVar15 = (long)(int)puVar14;
+                    puVar17 = puVar17 + 4;
+                    lVar18 = (long)(int)puVar17;
+                  } while (lVar15 != (int)(piVar7 + 0x28));
+                }
+                *puVar17 = *puVar14;
+                HashTable_UpdateEntry(piVar24[0xcf],puVar6,lVar12);
+              }
+              Util_FreeMemory(lVar21);
+              uVar5 = piVar24[2];
+            }
+          }
+          piVar24[2] = uVar5 | 0x80;
+        }
+        if ((((iStack_b0 == 0x2b736e70) && (iVar10 = piVar24[0x142], 3 < iVar10)) && (iVar10 < 8) )
+           && (piVar24[iVar10 * 5 + 0xc4] != 0)) {
+          piVar7 = (int *)Util_AllocateMemory(0xa8);
+          lVar21 = (long)(int)piVar7;
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_RankField);
+          pbVar8 = (byte *)(piVar7 + 2);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          piVar7[1] = iVar10;
+          pbVar4 = TagFieldFind(pbStack_a8,&ROOM_PasswordField);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          *piVar7 = iVar10;
+          pbVar4 = TagFieldFind(pbStack_a8,&MSG_UsernameField);
+          TagFieldGetString(pbVar4,pbVar8,0x20,(byte *)NET_DefaultValue);
+          pbVar4 = TagFieldFind(pbStack_a8,&DAT_003e3130);
+          TagFieldGetString(pbVar4,(byte *)(piVar7 + 10),0x80,(byte *)NET_DefaultValue);
+          if (*piVar7 < 0x2000) {
+            iVar10 = piVar24[0x142];
+          }
+          else {
+            *piVar7 = 0x1fff;
+            iVar10 = piVar24[0x142];
+          }
+          puVar6 = (undefined4 *)
+                   Buddy_FindUserByString(piVar24[iVar10 * 5 + 0xc4],(long)(int)pbVar8);
+          if ((long)(int)puVar6 == 0) {
+            iVar10 = HashTable_AllocateEntry(piVar24[piVar24[0x142] * 5 + 0xc5],lVar21);
+            Buddy_AddUser((int *)piVar24[piVar24[0x142] * 5 + 0xc4],pbVar8,iVar10);
+            uVar5 = piVar24[2];
+          }
+          else {
+            uVar5 = Buddy_GetUserData((long)piVar24[piVar24[0x142] * 5 + 0xc5],(long)(int)puVar6) ;
+            lVar12 = (long)(int)uVar5;
+            if ((((uint)piVar7 | uVar5) & 7) == 0) {
+              lVar15 = lVar21;
+              lVar18 = lVar12;
+              do {
+                puVar14 = (undefined8 *)lVar15;
+                uVar20 = puVar14[1];
+                uVar22 = puVar14[2];
+                uVar23 = puVar14[3];
+                puVar17 = (undefined8 *)lVar18;
+                *puVar17 = *puVar14;
+                puVar17[1] = uVar20;
+                puVar17[2] = uVar22;
+                puVar17[3] = uVar23;
+                puVar14 = puVar14 + 4;
+                lVar15 = (long)(int)puVar14;
+                puVar17 = puVar17 + 4;
+                lVar18 = (long)(int)puVar17;
+              } while (lVar15 != (int)(piVar7 + 0x28));
+            }
+            else {
+              lVar15 = lVar21;
+              lVar18 = lVar12;
+              do {
+                puVar14 = (undefined8 *)lVar15;
+                uVar20 = puVar14[1];
+                uVar22 = puVar14[2];
+                uVar23 = puVar14[3];
+                puVar17 = (undefined8 *)lVar18;
+                *puVar17 = *puVar14;
+                puVar17[1] = uVar20;
+                puVar17[2] = uVar22;
+                puVar17[3] = uVar23;
+                puVar14 = puVar14 + 4;
+                lVar15 = (long)(int)puVar14;
+                puVar17 = puVar17 + 4;
+                lVar18 = (long)(int)puVar17;
+              } while (lVar15 != (int)(piVar7 + 0x28));
+            }
+            *puVar17 = *puVar14;
+            HashTable_UpdateEntry(piVar24[piVar24[0x142] * 5 + 0xc5],puVar6,lVar12);
+            Util_FreeMemory(lVar21);
+            uVar5 = piVar24[2];
+          }
+          piVar24[2] = uVar5 | 0x80;
+        }
+        if (((iStack_b0 == 0x6d6f7665) || (iStack_b0 == 0x726f6f6d)) && (uStack_ac == 0)) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)FIELD_LIDENT);
+          iVar10 = TagFieldGetNumber(pbVar4,-1);
+          if (-1 < iVar10) {
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)FIELD_LCOUNT);
+            iVar13 = TagFieldGetNumber(pbVar4,0);
+            Lobby_UpdateRoomPopulation((int)piVar24,iVar10,(long)iVar13);
+          }
+        }
+        if (iStack_b0 == 0x6d6f7665) {
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)FIELD_IDENT);
+          iVar10 = TagFieldGetNumber(pbVar4,0);
+          pbVar4 = TagFieldFind(pbStack_a8,(byte *)FIELD_COUNT);
+          iVar13 = TagFieldGetNumber(pbVar4,0);
+          if (iVar10 != piVar24[0x6e]) {
+            piVar24[0x6e] = iVar10;
+            Lobby_UpdateRoomPopulation((int)piVar24,iVar10,(long)iVar13);
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)NET_Field2);
+            TagFieldGetString(pbVar4,(byte *)(piVar24 + 0x70),0x40,(byte *)NET_DefaultValue);
+            pbVar4 = TagFieldFind(pbStack_a8,(byte *)FIELD_FLAGS);
+            uVar5 = TagFieldGetFlags((char *)pbVar4,0);
+            piVar24[0x6f] = uVar5;
+            piVar24[2] = piVar24[2] | 8;
+            if (piVar24[0xc9] != 0) {
+              while (puVar6 = (undefined4 *)Buddy_GetNextUser((int *)piVar24[0xc9]),
+                    puVar6 != (undefined4 *)0x0) {
+                iVar10 = HashTable_FreeEntry(piVar24[0xca],puVar6);
+                Util_FreeMemory((long)iVar10);
+              }
+              piVar24[2] = piVar24[2] | 0x40;
+            }
+          }
+          puVar6 = (undefined4 *)*piVar24;
+        }
+        else {
+          puVar6 = (undefined4 *)*piVar24;
+        }
+      }
+      ProtoAriesRecv(puVar6,0,0,0,0);
+    }
+    LobbyApiListUpdate(param_1);
+    if ((piVar24[6] != 0) && ((uint)piVar24[6] <= uVar2)) {
+      Lobby_UpdateConnection((int)piVar24);
+      piVar24[6] = uVar2 + 30000;
+    }
+  }
+  return;
+}
+--
+Incoming References - LobbyApiUpdate
+ProtocolDispatcher_Main
